@@ -9,6 +9,7 @@ import LoginForm from './components/auth/login/loginForm';
 import SignupForm from './components/auth/login/SignUpForm';
 import UserProfile from "./pages/users/profile";
 import TransactionList from "./pages/wallet/TransactionList";
+import SavingsGroupPage from "./pages/groups/SavingsGroupPage";
 
 const App = () => {
     return (
@@ -23,6 +24,7 @@ const App = () => {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/dashboard/profile" element={<UserProfile />} />
           <Route path="/dashboard/transactions" element={<TransactionList />} />
+          <Route path="/dashboard/groups" element={<SavingsGroupPage />} />
      
         </Routes>
       </BrowserRouter>

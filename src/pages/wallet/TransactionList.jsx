@@ -173,42 +173,16 @@ const TransactionList = () => {
   }
 
   return (
-    <DashboardLayout className=" flex items-center justify-center p-4" >
+    <DashboardLayout className=" flex items-center justify-center " >
       <Box
         w="full"
-        maxW="6xl"
         position="relative"
         overflow="hidden"
       >
         <Box
-          bg={white}
-          borderRadius="2xl"
-          boxShadow="2xl"
           p={8}
           position="relative"
-        >
-          {/* Decorative circles */}
-          <Box 
-            position="absolute" 
-            top="-40px" 
-            right="-40px" 
-            w="160px" 
-            h="160px" 
-            borderRadius="full" 
-            bg={amber} 
-            opacity="0.2" 
-          />
-          <Box 
-            position="absolute" 
-            bottom="-40px" 
-            left="-40px" 
-            w="128px" 
-            h="128px" 
-            borderRadius="full" 
-            bg={bronze} 
-            opacity="0.2" 
-          />
-          
+        >  
           {/* Content */}
           <Box position="relative" zIndex="1">
             <Flex direction="column" mb={6}>

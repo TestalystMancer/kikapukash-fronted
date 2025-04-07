@@ -13,6 +13,7 @@ import {
     useToast,
   } from '@chakra-ui/react';
 import { LuLogOut } from 'react-icons/lu';
+import { BiSave } from 'react-icons/bi';
 
 const DashboardLayout = ({ children }) => {
     const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -70,10 +71,9 @@ const DashboardLayout = ({ children }) => {
 
     const menuItems = [
         { icon: <FiHome />, label: 'Dashboard', path: '/dashboard' },
-        { icon: <FiPieChart />, label: 'Wallet', path: '/wallet' },
         { icon: <FiPieChart />, label: 'Users', path: '/users' },
         { icon: <FiDollarSign />, label: 'Transactions', path: '/dashboard/transactions' },
-        { icon: <FiUsers />, label: 'Customers', path: '/customers' },
+        { icon: <BiSave />, label: 'Saving Groups', path: '/dashboard/groups' },
     ];
 
     const logout = () => {
