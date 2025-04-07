@@ -14,17 +14,21 @@ import {
   Text,
   Link,
   Heading,
-  useColorModeValue,
   Alert,
   AlertIcon,
+  FormHelperText,
+  Divider,
 } from '@chakra-ui/react';
 import { EmailIcon, LockIcon } from '@chakra-ui/icons';
 
-const LoginForm = () => {
+const SignupForm = () => {
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
+        first_name: '',
+        last_name: '',
         email: '',
         password: '',
+        confirmPassword: '',
     });
     const [error, setError] = useState('');
 
@@ -45,19 +49,28 @@ const LoginForm = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        
+        // Validate passwords match
+        if (formData.password !== formData.confirmPassword) {
+            setError('Passwords do not match');
+            return;
+        }
+        
         try {
-            const response = await axios.post('http://localhost:8000/api/token/', formData);
+            // Send signup request
+            const response = await axios.post('http://localhost:8000/api/users/', {
+                first_name: formData.first_name,
+                last_name: formData.last_name,
+                email: formData.email,
+                password: formData.password,
+            });
             
-            if (response.data.access) {
-                // Store the token in localStorage
-                localStorage.setItem('token', response.data.access);
-                // Set authorization header for future requests
-                axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.access}`;
-                // Redirect to dashboard
-                navigate('/dashboard');
+            if (response.data.success) {
+                // Redirect to login page
+                navigate('/');
             }
         } catch (err) {
-            setError(err.response?.data?.message || 'Login failed. Please try again.');
+            setError(err.response?.data?.message || 'Signup failed. Please try again.');
         }
     };
 
@@ -121,7 +134,7 @@ const LoginForm = () => {
                         </Flex>
 
                         <Heading as="h2" size="xl" textAlign="center" color={forestGreen} mb={6}>
-                            Welcome Back
+                            Create Account
                         </Heading>
 
                         {error && (
@@ -132,8 +145,56 @@ const LoginForm = () => {
                         )}
                         
                         <form onSubmit={handleSubmit}>
-                            <Stack spacing={6}>
-                                <FormControl id="email">
+                            <Stack spacing={5}>
+                                <FormControl id="first_name" isRequired>
+                                    <FormLabel color={dark}>First Name</FormLabel>
+                                    <InputGroup>
+                                        <InputLeftElement
+                                            pointerEvents="none"
+                                            children={
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="gray">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                                </svg>
+                                            }
+                                        />
+                                        <Input
+                                            type="text"
+                                            name="first_name"
+                                            value={formData.first_name}
+                                            onChange={handleChange}
+                                            placeholder="John Doe"
+                                            size="lg"
+                                            background={lightGray}
+                                            focusBorderColor={forestGreen}
+                                        />
+                                    </InputGroup>
+                                </FormControl>
+
+                                <FormControl id="last_name" isRequired>
+                                    <FormLabel color={dark}>Last Name</FormLabel>
+                                    <InputGroup>
+                                        <InputLeftElement
+                                            pointerEvents="none"
+                                            children={
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="gray">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                                </svg>
+                                            }
+                                        />
+                                        <Input
+                                            type="text"
+                                            name="last_name"
+                                            value={formData.last_name}
+                                            onChange={handleChange}
+                                            placeholder="John Doe"
+                                            size="lg"
+                                            background={lightGray}
+                                            focusBorderColor={forestGreen}
+                                        />
+                                    </InputGroup>
+                                </FormControl>
+
+                                <FormControl id="email" isRequired>
                                     <FormLabel color={dark}>Email Address</FormLabel>
                                     <InputGroup>
                                         <InputLeftElement
@@ -149,12 +210,11 @@ const LoginForm = () => {
                                             size="lg"
                                             background={lightGray}
                                             focusBorderColor={forestGreen}
-                                            required
                                         />
                                     </InputGroup>
                                 </FormControl>
 
-                                <FormControl id="password">
+                                <FormControl id="password" isRequired>
                                     <FormLabel color={dark}>Password</FormLabel>
                                     <InputGroup>
                                         <InputLeftElement
@@ -170,7 +230,29 @@ const LoginForm = () => {
                                             size="lg"
                                             background={lightGray}
                                             focusBorderColor={forestGreen}
-                                            required
+                                        />
+                                    </InputGroup>
+                                    <FormHelperText color="gray.500">
+                                        Must be at least 8 characters with a mix of letters, numbers, and symbols
+                                    </FormHelperText>
+                                </FormControl>
+
+                                <FormControl id="confirmPassword" isRequired>
+                                    <FormLabel color={dark}>Confirm Password</FormLabel>
+                                    <InputGroup>
+                                        <InputLeftElement
+                                            pointerEvents="none"
+                                            children={<LockIcon color="gray.400" />}
+                                        />
+                                        <Input
+                                            type="password"
+                                            name="confirmPassword"
+                                            value={formData.confirmPassword}
+                                            onChange={handleChange}
+                                            placeholder="••••••••"
+                                            size="lg"
+                                            background={lightGray}
+                                            focusBorderColor={forestGreen}
                                         />
                                     </InputGroup>
                                 </FormControl>
@@ -180,23 +262,26 @@ const LoginForm = () => {
                                     bg={forestGreen}
                                     color={white}
                                     size="lg"
+                                    mt={2}
                                     _hover={{ bg: amber }}
                                     _active={{ bg: bronze }}
                                     leftIcon={
                                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                                         </svg>
                                     }
                                 >
-                                    Sign in
+                                    Create Account
                                 </Button>
                             </Stack>
                         </form>
 
-                        <Text mt={8} textAlign="center" fontSize="sm" color={dark}>
-                            Don't have an account?{' '}
-                            <Link as={RouterLink} to="/signup" color={amber} _hover={{ color: bronze }}>
-                                Sign up now
+                        <Divider my={6} borderColor="gray.200" />
+
+                        <Text textAlign="center" fontSize="sm" color={dark}>
+                            Already have an account?{' '}
+                            <Link as={RouterLink} to="/login" color={amber} _hover={{ color: bronze }}>
+                                Sign in
                             </Link>
                         </Text>
                     </Box>
@@ -206,4 +291,4 @@ const LoginForm = () => {
     );
 };
 
-export default LoginForm;
+export default SignupForm;
