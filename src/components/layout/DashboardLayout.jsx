@@ -14,6 +14,7 @@ import {
   } from '@chakra-ui/react';
 import { LuLogOut } from 'react-icons/lu';
 import { BiSave } from 'react-icons/bi';
+import NotificationBell from '@/pages/notifications/NotificationBell';
 
 const DashboardLayout = ({ children }) => {
     const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -118,6 +119,8 @@ const DashboardLayout = ({ children }) => {
                         <button className="p-2 hover:bg-gray-100 rounded-full">
                             <FiSettings />
                         </button> */}
+                        <NotificationBell />
+
                         <button className="flex items-center space-x-2 p-2 hover:bg-gray-100 rounded-lg">
                             <FiUser />
                             <Link className='font-bold text-lg' to="/dashboard/profile">

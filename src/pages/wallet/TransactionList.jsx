@@ -35,17 +35,45 @@ import {
   TagLabel,
   Center,
   Image,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalFooter,
+  ModalBody,
+  ModalCloseButton,
+  FormControl,
+  FormLabel,
+  FormErrorMessage,
+  NumberInput,
+  NumberInputField,
+  useDisclosure,
 } from '@chakra-ui/react';
-import { SearchIcon, ChevronDownIcon, DownloadIcon, CalendarIcon } from '@chakra-ui/icons';
+import { SearchIcon, ChevronDownIcon, DownloadIcon, CalendarIcon, AddIcon } from '@chakra-ui/icons';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 
 const TransactionList = () => {
   const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [transactions, setTransactions] = useState([]);
+  const [wallets, setWallets] = useState([]);
   const [filterType, setFilterType] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [dateRange, setDateRange] = useState('all');
+  const [transactionLoading, setTransactionLoading] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [userWallet, setUserWallet] = useState(null);
+  const [walletNotFoundAlert, setWalletNotFoundAlert] = useState(false);
+  
+  // New transaction form state
+  const [transactionType, setTransactionType] = useState('deposit');
+  const [amount, setAmount] = useState('');
+  const [toWallet, setToWallet] = useState('');
+  const [fromWallet, setFromWallet] = useState('');
+  const [formError, setFormError] = useState('');
+
+  // Modal control
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
   // Custom colors from your application
   const forestGreen = "#228B22";
@@ -56,23 +84,75 @@ const TransactionList = () => {
   const lightGray = "#f5f5f5";
 
   useEffect(() => {
-    const fetchTransactions = async () => {
+    // Get the current user from local storage
+    try {
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        const parsedUser = JSON.parse(storedUser);
+        setCurrentUser(parsedUser);
+      }
+    } catch (error) {
+      console.error("Error parsing user from localStorage:", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    const fetchData = async () => {
       const token = localStorage.getItem('token');
 
       try {
-        const response = await fetch('http://localhost:8000/api/transactions/', {
+        // Fetch transactions
+        const transactionsResponse = await fetch('http://localhost:8000/api/transactions/', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
         });
 
-        if (!response.ok) {
+        if (!transactionsResponse.ok) {
           throw new Error('Failed to fetch transactions');
         }
 
-        const data = await response.json();
-        setTransactions(data);
+        const transactionsData = await transactionsResponse.json();
+        setTransactions(transactionsData);
+
+        // Fetch wallets
+        const walletsResponse = await fetch('http://localhost:8000/api/wallets/', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!walletsResponse.ok) {
+          throw new Error('Failed to fetch wallets');
+        }
+
+        const walletsData = await walletsResponse.json();
+        setWallets(walletsData);
+        
+        // Find the user's wallet if we have the current user
+        if (currentUser && currentUser.id) {
+          const userWalletFound = walletsData.find(wallet => 
+            wallet.owner_type === 'user' && wallet.owner_id === currentUser.id
+          );
+          
+          if (userWalletFound) {
+            setUserWallet(userWalletFound);
+            setFromWallet(userWalletFound.id.toString());
+            setToWallet(userWalletFound.id.toString()); // Set user's wallet as default for deposits
+          } else {
+            // Alert if user wallet is not found
+            setWalletNotFoundAlert(true);
+            toast({
+              title: 'Wallet Not Found',
+              description: 'Your personal wallet could not be found. Please contact support.',
+              status: 'warning',
+              duration: 7000,
+              isClosable: true,
+            });
+          }
+        }
       } catch (error) {
         toast({
           title: 'Error',
@@ -86,8 +166,8 @@ const TransactionList = () => {
       }
     };
 
-    fetchTransactions();
-  }, [toast]);
+    fetchData();
+  }, [toast, currentUser]);
 
   const handleFilterChange = (e) => {
     setFilterType(e.target.value);
@@ -99,6 +179,138 @@ const TransactionList = () => {
 
   const handleDateRangeChange = (e) => {
     setDateRange(e.target.value);
+  };
+
+  const handleCreateTransaction = async () => {
+    setFormError('');
+    
+    // Validate form
+    if (!amount || parseFloat(amount) <= 0) {
+      setFormError('Please enter a valid amount');
+      return;
+    }
+
+    if (transactionType === 'deposit' && !toWallet) {
+      setFormError('Please select a destination wallet');
+      return;
+    }
+
+    if (transactionType === 'withdrawal' && !fromWallet) {
+      setFormError('Please select a source wallet');
+      return;
+    }
+
+    if (transactionType === 'transfer') {
+      if (!fromWallet) {
+        setFormError('Please select a source wallet');
+        return;
+      }
+      if (!toWallet) {
+        setFormError('Please select a destination wallet');
+        return;
+      }
+      if (fromWallet === toWallet) {
+        setFormError('Source and destination wallets cannot be the same');
+        return;
+      }
+    }
+
+    setTransactionLoading(true);
+    const token = localStorage.getItem('token');
+
+    try {
+      // Prepare transaction data
+      const transactionData = {
+        transaction_type: transactionType,
+        amount: amount,
+        from_wallet: ['withdrawal', 'transfer'].includes(transactionType) ? parseInt(fromWallet) : null,
+        to_wallet: ['deposit', 'transfer'].includes(transactionType) ? parseInt(toWallet) : null,
+      };
+
+      const response = await fetch('http://localhost:8000/api/transactions/', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(transactionData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to create transaction');
+      }
+
+      const newTransaction = await response.json();
+      
+      // Update transactions list with the new transaction
+      setTransactions([newTransaction, ...transactions]);
+      
+      toast({
+        title: 'Success',
+        description: `${transactionType.charAt(0).toUpperCase() + transactionType.slice(1)} created successfully`,
+        status: 'success',
+        duration: 5000,
+        isClosable: true,
+      });
+
+      // Reset form and close modal
+      resetForm();
+      onClose();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error.message,
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setTransactionLoading(false);
+    }
+  };
+
+  const resetForm = () => {
+    setTransactionType('deposit');
+    setAmount('');
+    // Reset wallets to user wallet if available
+    if (userWallet) {
+      setFromWallet(userWallet.id.toString());
+      setToWallet(userWallet.id.toString());
+    } else {
+      setFromWallet('');
+      setToWallet('');
+    }
+    setFormError('');
+  };
+
+  const handleModalClose = () => {
+    resetForm();
+    onClose();
+  };
+
+  const handleTransactionTypeChange = (e) => {
+    const newType = e.target.value;
+    setTransactionType(newType);
+    
+    // Auto-select user's wallet as appropriate for the transaction type
+    if (userWallet) {
+      if (newType === 'withdrawal' || newType === 'transfer') {
+        setFromWallet(userWallet.id.toString());
+      }
+      if (newType === 'deposit') {
+        setToWallet(userWallet.id.toString());
+      }
+      // For transfer, reset the to wallet if it's the same as from wallet
+      if (newType === 'transfer' && toWallet === userWallet.id.toString()) {
+        setToWallet('');
+      }
+    }
+  };
+
+  const getOtherWallets = () => {
+    if (!userWallet) return wallets;
+    return wallets.filter(wallet => wallet.id !== userWallet.id);
   };
 
   const filteredTransactions = transactions.filter(transaction => {
@@ -164,6 +376,27 @@ const TransactionList = () => {
     }).format(amount);
   };
 
+  const getWalletLabel = (walletId) => {
+    const wallet = wallets.find(w => w.id === walletId);
+    if (wallet && wallet.owner_object) {
+      return `${wallet.owner_object.first_name} ${wallet.owner_object.last_name}'s Wallet ($${wallet.balance})`;
+    }
+    return `Wallet #${walletId}`;
+  };
+
+  const getTransactionTypeColor = (type) => {
+    switch(type) {
+      case 'deposit':
+        return 'green';
+      case 'withdrawal':
+        return 'red';
+      case 'transfer':
+        return 'blue';
+      default:
+        return 'gray';
+    }
+  };
+
   if (loading) {
     return (
       <Flex justify="center" align="center" minH="100vh" bg={`linear-gradient(to bottom right, ${forestGreen}, ${amber}, ${bronze})`}>
@@ -173,12 +406,19 @@ const TransactionList = () => {
   }
 
   return (
-    <DashboardLayout className=" flex items-center justify-center " >
+    <DashboardLayout className="flex items-center justify-center">
       <Box
         w="full"
         position="relative"
         overflow="hidden"
       >
+        {walletNotFoundAlert && (
+          <Alert status="warning" mb={4}>
+            <AlertIcon />
+            Your personal wallet could not be found. Some transaction functions may be limited.
+          </Alert>
+        )}
+        
         <Box
           p={8}
           position="relative"
@@ -186,9 +426,22 @@ const TransactionList = () => {
           {/* Content */}
           <Box position="relative" zIndex="1">
             <Flex direction="column" mb={6}>
-              <Heading as="h2" size="xl" color={forestGreen} mb={2}>
-                Transaction History
-              </Heading>
+              <Flex justify="space-between" align="center" wrap="wrap">
+                <Heading as="h2" size="xl" color={forestGreen} mb={2}>
+                  Transaction History
+                </Heading>
+                <Button
+                  leftIcon={<AddIcon />}
+                  bg={forestGreen}
+                  color={white}
+                  _hover={{ bg: amber }}
+                  _active={{ bg: bronze }}
+                  onClick={onOpen}
+                  mt={{ base: 2, md: 0 }}
+                >
+                  New Transaction
+                </Button>
+              </Flex>
               <Text color="gray.600" fontSize="md">
                 View and manage all your financial transactions
               </Text>
@@ -226,6 +479,7 @@ const TransactionList = () => {
                   <option value="all">All Types</option>
                   <option value="deposit">Deposits</option>
                   <option value="withdrawal">Withdrawals</option>
+                  <option value="transfer">Transfers</option>
                 </Select>
 
                 <Select 
@@ -291,7 +545,7 @@ const TransactionList = () => {
                     No Transactions Found
                   </Heading>
                   <Text color="gray.500" textAlign="center" maxW="md">
-                    You don't have any transactions yet. When you make deposits or withdrawals, they will appear here.
+                    You don't have any transactions yet. When you make deposits, withdrawals, or transfers, they will appear here.
                   </Text>
                   <Button
                     mt={6}
@@ -299,22 +553,8 @@ const TransactionList = () => {
                     color={white}
                     _hover={{ bg: amber }}
                     _active={{ bg: bronze }}
-                    leftIcon={
-                      <svg 
-                        xmlns="http://www.w3.org/2000/svg" 
-                        width="20" 
-                        height="20" 
-                        viewBox="0 0 24 24" 
-                        fill="none" 
-                        stroke="currentColor" 
-                        strokeWidth="2" 
-                        strokeLinecap="round" 
-                        strokeLinejoin="round"
-                      >
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                      </svg>
-                    }
+                    leftIcon={<AddIcon />}
+                    onClick={onOpen}
                   >
                     Make Your First Transaction
                   </Button>
@@ -375,28 +615,30 @@ const TransactionList = () => {
                           <Td fontWeight="medium">{transaction.id}</Td>
                           <Td>
                             <Badge
-                              colorScheme={transaction.transaction_type === 'deposit' ? 'green' : 'red'}
+                              colorScheme={getTransactionTypeColor(transaction.transaction_type)}
                               borderRadius="full"
                               px={3}
                               py={1}
                             >
-                              {transaction.transaction_type === 'deposit' ? 'Deposit' : 'Withdrawal'}
+                              {transaction.transaction_type.charAt(0).toUpperCase() + transaction.transaction_type.slice(1)}
                             </Badge>
                           </Td>
-                          <Td fontWeight="semibold" color={transaction.transaction_type === 'deposit' ? 'green.500' : 'red.500'}>
-                            {transaction.transaction_type === 'deposit' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                          <Td fontWeight="semibold" color={transaction.transaction_type === 'withdrawal' ? 'red.500' : 'green.500'}>
+                            {transaction.transaction_type === 'withdrawal' ? '-' : (transaction.transaction_type === 'transfer' ? '±' : '+')}{formatCurrency(transaction.amount)}
                           </Td>
                           <Td>
-                            <Tooltip label={`Wallet ID: ${transaction.from_wallet}`}>
+                            <Tooltip label={transaction.from_wallet ? `Wallet ID: ${transaction.from_wallet}` : 'N/A'}>
                               <Text>
-                                {transaction.from_wallet ? `Wallet #${transaction.from_wallet}` : '—'}
+                                {transaction.from_wallet ? 
+                                  getWalletLabel(transaction.from_wallet) : '—'}
                               </Text>
                             </Tooltip>
                           </Td>
                           <Td>
-                            <Tooltip label={`Wallet ID: ${transaction.to_wallet}`}>
+                            <Tooltip label={transaction.to_wallet ? `Wallet ID: ${transaction.to_wallet}` : 'N/A'}>
                               <Text>
-                                {transaction.to_wallet ? `Wallet #${transaction.to_wallet}` : '—'}
+                                {transaction.to_wallet ? 
+                                  getWalletLabel(transaction.to_wallet) : '—'}
                               </Text>
                             </Tooltip>
                           </Td>
@@ -447,12 +689,224 @@ const TransactionList = () => {
                       )}
                     </Text>
                   </Box>
+                  <Divider orientation="vertical" h="40px" />
+                  <Box textAlign="right">
+                    <Text fontSize="sm" color="gray.500">Total Transfers</Text>
+                    <Text fontWeight="bold" color="blue.500">
+                      {formatCurrency(
+                        transactions
+                          .filter(t => t.transaction_type === 'transfer')
+                          .reduce((sum, t) => sum + parseFloat(t.amount), 0)
+                      )}
+                    </Text>
+                  </Box>
                 </HStack>
               </Flex>
             )}
           </Box>
         </Box>
       </Box>
+
+      {/* Create Transaction Modal */}
+      <Modal isOpen={isOpen} onClose={handleModalClose} size="md">
+        <ModalOverlay backdropFilter="blur(4px)" />
+        <ModalContent borderRadius="lg">
+          <ModalHeader 
+            bg={forestGreen} 
+            color={white} 
+            borderTopRadius="lg"
+            py={4}
+          >
+            Create New Transaction
+          </ModalHeader>
+          <ModalCloseButton color={white} />
+          
+          <ModalBody py={6}>
+            {formError && (
+              <Alert status="error" mb={4} borderRadius="md">
+                <AlertIcon />
+                {formError}
+              </Alert>
+            )}
+            
+            {walletNotFoundAlert && (transactionType === 'withdrawal' || transactionType === 'transfer') && (
+              <Alert status="warning" mb={4} borderRadius="md">
+                <AlertIcon />
+                Your personal wallet could not be found. You cannot make {transactionType}s at this time.
+              </Alert>
+            )}
+            
+            <FormControl mb={4}>
+              <FormLabel fontWeight="medium">Transaction Type</FormLabel>
+              <Select 
+                value={transactionType} 
+                onChange={handleTransactionTypeChange}
+                bg={lightGray}
+                focusBorderColor={forestGreen}
+              >
+                <option value="deposit">Deposit</option>
+                <option value="withdrawal">Withdrawal</option>
+                <option value="transfer">Transfer</option>
+              </Select>
+            </FormControl>
+            
+            <FormControl mb={4}>
+              <FormLabel fontWeight="medium">Amount (USD)</FormLabel>
+              <NumberInput min={0.01} precision={2}>
+                <NumberInputField 
+                  placeholder="Enter amount" 
+                  value={amount} 
+                  onChange={(e) => setAmount(e.target.value)}
+                  bg={lightGray}
+                  focusBorderColor={forestGreen}
+                />
+              </NumberInput>
+            </FormControl>
+            
+            {/* For deposit, show user wallet info */}
+            {transactionType === 'deposit' && (
+              <FormControl mb={4}>
+                <FormLabel fontWeight="medium">Destination Wallet</FormLabel>
+                {userWallet ? (
+                  <Box 
+                    p={3} 
+                    bg={lightGray} 
+                    borderRadius="md"
+                    borderWidth="1px"
+                    borderColor="gray.200"
+                  >
+                    <Flex align="center" justify="space-between">
+                      <Text fontWeight="medium">
+                        {userWallet.owner_object ? 
+                          `${userWallet.owner_object.first_name} ${userWallet.owner_object.last_name}'s Wallet` : 
+                          `Your Wallet`}
+                      </Text>
+                      <Badge colorScheme="green">Balance: ${userWallet.balance}</Badge>
+                    </Flex>
+                    <Text fontSize="sm" color="gray.500" mt={1}>
+                      Funds will be deposited to your personal wallet
+                    </Text>
+                  </Box>
+                ) : (
+                  <Alert status="error" borderRadius="md">
+                    <AlertIcon />
+                    Your personal wallet could not be found. Please contact support.
+                  </Alert>
+                )}
+              </FormControl>
+            )}
+            
+            {/* For withdrawal, show user wallet info */}
+            {transactionType === 'withdrawal' && (
+              <FormControl mb={4}>
+                <FormLabel fontWeight="medium">Source Wallet</FormLabel>
+                {userWallet ? (
+                  <Box 
+                    p={3} 
+                    bg={lightGray} 
+                    borderRadius="md"
+                    borderWidth="1px"
+                    borderColor="gray.200"
+                  >
+                    <Flex align="center" justify="space-between">
+                      <Text fontWeight="medium">
+                        {userWallet.owner_object ? 
+                          `${userWallet.owner_object.first_name} ${userWallet.owner_object.last_name}'s Wallet` : 
+                          `Your Wallet`}
+                      </Text>
+                      <Badge colorScheme="green">Balance: ${userWallet.balance}</Badge>
+                    </Flex>
+                    <Text fontSize="sm" color="gray.500" mt={1}>
+                      Funds will be withdrawn from your personal wallet
+                    </Text>
+                  </Box>
+                ) : (
+                  <Alert status="error" borderRadius="md">
+                    <AlertIcon />
+                    Your personal wallet could not be found. Please contact support.
+                  </Alert>
+                )}
+              </FormControl>
+            )}
+            
+            {/* For transfer, show both source and destination wallets */}
+            {transactionType === 'transfer' && (
+              <>
+                <FormControl mb={4}>
+                  <FormLabel fontWeight="medium">Source Wallet</FormLabel>
+                  {userWallet ? (
+                    <Box 
+                      p={3} 
+                      bg={lightGray} 
+                      borderRadius="md"
+                      borderWidth="1px"
+                      borderColor="gray.200"
+                    >
+                      <Flex align="center" justify="space-between">
+                        <Text fontWeight="medium">
+                          {userWallet.owner_object ? 
+                            `${userWallet.owner_object.first_name} ${userWallet.owner_object.last_name}'s Wallet` : 
+                            `Your Wallet`}
+                        </Text>
+                        <Badge colorScheme="green">Balance: ${userWallet.balance}</Badge>
+                      </Flex>
+                      <Text fontSize="sm" color="gray.500" mt={1}>
+                        Funds will be transferred from your personal wallet
+                      </Text>
+                    </Box>
+                  ) : (
+                    <Alert status="error" borderRadius="md">
+                      <AlertIcon />
+                      Your personal wallet could not be found. Please contact support.
+                    </Alert>
+                  )}
+                </FormControl>
+                
+                <FormControl mb={4}>
+                  <FormLabel fontWeight="medium">Destination Wallet</FormLabel>
+                  <Select 
+                    placeholder="Select destination wallet"
+                    value={toWallet}
+                    onChange={(e) => setToWallet(e.target.value)}
+                    bg={lightGray}
+                    focusBorderColor={forestGreen}
+                  >
+                    {getOtherWallets().map(wallet => (
+                      <option key={wallet.id} value={wallet.id}>
+                        {wallet.owner_object ? 
+                          `${wallet.owner_object.first_name} ${wallet.owner_object.last_name}'s Wallet ($${wallet.balance})` : 
+                          `Wallet #${wallet.id}`}
+                      </option>
+                    ))}
+                  </Select>
+                </FormControl>
+              </>
+            )}
+          </ModalBody>
+
+          <ModalFooter bg={lightGray} borderBottomRadius="lg">
+            <Button 
+              variant="outline" 
+              mr={3} 
+              onClick={handleModalClose}
+            >
+              Cancel
+            </Button>
+            <Button 
+              bg={forestGreen}
+              color={white}
+              _hover={{ bg: amber }}
+              _active={{ bg: bronze }}
+              onClick={handleCreateTransaction}
+              isLoading={transactionLoading}
+              loadingText="Processing"
+              isDisabled={(transactionType === 'withdrawal' || transactionType === 'transfer') && !userWallet}
+            >
+              Create Transaction
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </DashboardLayout>
   );
 };
