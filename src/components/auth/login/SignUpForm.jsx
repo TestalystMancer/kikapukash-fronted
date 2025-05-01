@@ -58,7 +58,7 @@ const SignupForm = () => {
         
         try {
             // Send signup request
-            const response = await axios.post('http://localhost:8000/api/users/', {
+            const response = await axios.post('https://kikapukash-backend-production.up.railway.app/api/users/', {
                 first_name: formData.first_name,
                 last_name: formData.last_name,
                 email: formData.email,

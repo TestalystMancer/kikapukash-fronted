@@ -102,7 +102,7 @@ const TransactionList = () => {
 
       try {
         // Fetch transactions
-        const transactionsResponse = await fetch('http://localhost:8000/api/transactions/', {
+        const transactionsResponse = await fetch('https://kikapukash-backend-production.up.railway.app/api/transactions/', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -117,7 +117,7 @@ const TransactionList = () => {
         setTransactions(transactionsData);
 
         // Fetch wallets
-        const walletsResponse = await fetch('http://localhost:8000/api/wallets/', {
+        const walletsResponse = await fetch('https://kikapukash-backend-production.up.railway.app/api/wallets/', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -227,7 +227,7 @@ const TransactionList = () => {
         to_wallet: ['deposit', 'transfer'].includes(transactionType) ? parseInt(toWallet) : null,
       };
 
-      const response = await fetch('http://localhost:8000/api/transactions/', {
+      const response = await fetch('https://kikapukash-backend-production.up.railway.app/api/transactions/', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -46,7 +46,7 @@ const LoginForm = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const response = await axios.post('http://localhost:8000/api/token/', formData);
+            const response = await axios.post('https://kikapukash-backend-production.up.railway.app/api/token/', formData);
             
             if (response.data.access) {
                 // Store the token in localStorage

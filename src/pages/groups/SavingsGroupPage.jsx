@@ -83,7 +83,7 @@ const SavingsGroupPage = () => {
       
       try {
         // Fetch groups
-        const groupsResponse = await fetch('http://localhost:8000/api/groups/', {
+        const groupsResponse = await fetch('https://kikapukash-backend-production.up.railway.app/api/groups/', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -98,7 +98,7 @@ const SavingsGroupPage = () => {
         setGroups(groupsData);
         
         // Fetch users for adding members
-        const usersResponse = await fetch('http://localhost:8000/api/users/', {
+        const usersResponse = await fetch('https://kikapukash-backend-production.up.railway.app/api/users/', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -139,7 +139,7 @@ const SavingsGroupPage = () => {
     const token = localStorage.getItem('token');
     
     try {
-      const response = await fetch('http://localhost:8000/api/groups/', {
+      const response = await fetch('https://kikapukash-backend-production.up.railway.app/api/groups/', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -193,7 +193,7 @@ const SavingsGroupPage = () => {
     
     
     try {
-      const response = await fetch(`http://localhost:8000/api/group-members/add_member/`, {
+      const response = await fetch(`https://kikapukash-backend-production.up.railway.app/api/group-members/add_member/`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -222,7 +222,7 @@ const SavingsGroupPage = () => {
       onAddMemberClose();
       
       // Refresh groups to get updated member list
-      const updatedGroupsResponse = await fetch('http://localhost:8000/api/groups/', {
+      const updatedGroupsResponse = await fetch('https://kikapukash-backend-production.up.railway.app/api/groups/', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',

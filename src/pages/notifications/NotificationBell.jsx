@@ -68,7 +68,7 @@ const NotificationBell = () => {
         throw new Error('Authentication token not found');
       }
       
-      const response = await fetch('http://localhost:8000/api/notifications/', {
+      const response = await fetch('https://kikapukash-backend-production.up.railway.app/api/notifications/', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -102,7 +102,7 @@ const NotificationBell = () => {
         throw new Error('Authentication token not found');
       }
       
-      const response = await fetch(`http://localhost:8000/api/notifications/${notificationId}/read/`, {
+      const response = await fetch(`https://kikapukash-backend-production.up.railway.app/api/notifications/${notificationId}/read/`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,

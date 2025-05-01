@@ -64,7 +64,7 @@ const UserProfile = () => {
       const token = localStorage.getItem('token');
 
       try {
-        const response = await fetch('http://localhost:8000/api/users/me', {
+        const response = await fetch('https://kikapukash-backend-production.up.railway.app/api/users/me', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -119,7 +119,7 @@ const UserProfile = () => {
     const token = localStorage.getItem('token');
 
     try {
-      const response = await fetch(`http://localhost:8000/api/users/${userProfile?.id}/`, {
+      const response = await fetch(`https://kikapukash-backend-production.up.railway.app/api/users/${userProfile?.id}/`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -173,7 +173,7 @@ const UserProfile = () => {
     const token = localStorage.getItem('token');
 
     try {
-      const response = await fetch('http://localhost:8000/api/users/change-password', {
+      const response = await fetch('https://kikapukash-backend-production.up.railway.app/api/users/change-password', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

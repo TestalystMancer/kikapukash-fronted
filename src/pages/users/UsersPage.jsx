@@ -51,7 +51,7 @@ const UsersPage = () => {
       const token = localStorage.getItem('token');
 
       try {
-        const response = await fetch('http://localhost:8000/api/users/', {
+        const response = await fetch('https://kikapukash-backend-production.up.railway.app/api/users/', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
