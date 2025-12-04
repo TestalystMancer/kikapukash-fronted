@@ -1,10 +1,10 @@
 import React from 'react';
 import { FaGooglePlay, FaApple, FaGlobe, FaEnvelope, FaPhone, FaHeadset, FaQuestionCircle, FaFacebook, FaTwitter, FaInstagram, FaLinkedin } from 'react-icons/fa';
 import Header from '../components/global/Header';
-import FeaturesSection from '../components/landing /OurFeatures';
-import HowItWorksSection from '../components/landing /HowItWorks';
-import TestimonialsSection from '../components/landing /WhatOurUsersSay';
-import GetStartedAndFooter from '../components/landing /GetStartedAndFooter';
+import FeaturesSection from '../components/landing/OurFeatures';
+import HowItWorksSection from '../components/landing/HowItWorks';
+import TestimonialsSection from '../components/landing/WhatOurUsersSay';
+import GetStartedAndFooter from '../components/landing/GetStartedAndFooter';
 
 // Import components
 
